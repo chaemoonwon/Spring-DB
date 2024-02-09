@@ -1,6 +1,5 @@
 package hello.jdbc.repository;
 
-import hello.jdbc.connection.DBConnectionUtil;
 import hello.jdbc.domain.Member;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.jdbc.support.JdbcUtils;
@@ -10,15 +9,15 @@ import java.sql.*;
 import java.util.NoSuchElementException;
 
 /*
-* JDBC - DataSource 사용, JdbcUtils 사용
-* */
+ * JDBC - ConnectionParam
+ * */
 
 @Slf4j
-public class MemberRepositoryV1 {
+public class MemberRepositoryV2 {
 
     private final DataSource dataSource;
 
-    public MemberRepositoryV1(DataSource dataSource) {
+    public MemberRepositoryV2(DataSource dataSource) {
         this.dataSource = dataSource;
     }
 
@@ -48,7 +47,6 @@ public class MemberRepositoryV1 {
         }
     }
 
-    //JDBC 개발 - 조회
     public Member findById(String memberId) throws SQLException {
         String sql = "select * from member where member_id = ?";
 
@@ -68,7 +66,7 @@ public class MemberRepositoryV1 {
                 member.setMoney(rs.getInt("money"));
                 return member;
             } else {
-                throw new NoSuchElementException("member not found memberId= " +memberId);
+                throw new NoSuchElementException("member not found memberId= " + memberId);
             }
         } catch (SQLException e) {
             log.info("error", e);
@@ -79,26 +77,55 @@ public class MemberRepositoryV1 {
 
     }
 
+
+    //JDBC 개발 - 조회
+    public Member findById(Connection con, String memberId) throws SQLException {
+        String sql = "select * from member where member_id = ?";
+
+        PreparedStatement pstmt = null;
+        ResultSet rs = null;
+
+        try {
+            pstmt = con.prepareStatement(sql);
+            pstmt.setString(1, memberId);
+
+            rs = pstmt.executeQuery();  //데이터를 조회할때 사용
+            if (rs.next()) {
+                Member member = new Member();
+                member.setMemberId(rs.getString("member_id"));
+                member.setMoney(rs.getInt("money"));
+                return member;
+            } else {
+                throw new NoSuchElementException("member not found memberId= " + memberId);
+            }
+        } catch (SQLException e) {
+            log.info("error", e);
+            throw e;
+        } finally {
+            JdbcUtils.closeResultSet(rs);
+            JdbcUtils.closeStatement(pstmt);
+        }
+
+    }
+
     //JDBC 개발 - 수정
-    public void update(String memberId, int money) throws SQLException {
+    public void update(Connection con, String memberId, int money) throws SQLException {
         String sql = "update member set money=? where member_id=?";
 
-        Connection con = null;
         PreparedStatement pstmt = null;
 
         try {
-            con = getConnection();
             pstmt = con.prepareStatement(sql);
             pstmt.setInt(1, money);
             pstmt.setString(2, memberId);
             int resultSize = pstmt.executeUpdate(); //수정한 row수를 반환
-            log.info("resultSize={}",resultSize);
+            log.info("resultSize={}", resultSize);
 
         } catch (SQLException e) {
             log.info("db error", e);
             throw e;
         } finally {
-            close(con, pstmt, null);
+            JdbcUtils.closeStatement(pstmt);
         }
     }
 
@@ -126,7 +153,9 @@ public class MemberRepositoryV1 {
         //해제할 때 순서
         JdbcUtils.closeResultSet(rs);
         JdbcUtils.closeStatement(stmt);
-        JdbcUtils.closeConnection(con);
+        // Connection을 매개변수로 받을 때,
+        // connection은 여기 닫지 않음.
+//        JdbcUtils.closeConnection(con);
     }
 
     private Connection getConnection() throws SQLException {

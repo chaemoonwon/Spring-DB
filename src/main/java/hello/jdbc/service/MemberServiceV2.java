@@ -2,24 +2,58 @@ package hello.jdbc.service;
 
 import hello.jdbc.domain.Member;
 import hello.jdbc.repository.MemberRepositoryV1;
+import hello.jdbc.repository.MemberRepositoryV2;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
+import javax.sql.DataSource;
+import java.sql.Connection;
 import java.sql.SQLException;
 
-@RequiredArgsConstructor
-public class MemberServiceV1 {
+/*
+* 트랜잭션 - 파라미터 연동, 툴을 고려한 종료
+* */
 
-    private final MemberRepositoryV1 memberRepositoryV1;
+@RequiredArgsConstructor
+@Slf4j
+public class MemberServiceV2 {
+
+    private final DataSource dataSource;
+    private final MemberRepositoryV2 memberRepositoryV2;
 
     public void accountTransaction(String fromId, String toId, int money) throws SQLException {
-        //시작
-        Member fromMember = memberRepositoryV1.findById(fromId);
-        Member toMember = memberRepositoryV1.findById(toId);
+        Connection con = dataSource.getConnection();
+        try {
+            con.setAutoCommit(false);   //트랜잭션 시작
+            //비즈니스 로직
+            bizLogic(con, fromId, toId, money);
+            con.commit();   //성공시 커밋
+        } catch (Exception e) {
+            con.rollback(); //실패시 롤백
+            throw new IllegalStateException(e);
+        } finally {
+            release(con);
+        }
+    }
 
-        memberRepositoryV1.update(fromId, fromMember.getMoney() - money);
+    private void bizLogic(Connection con, String fromId, String toId, int money) throws SQLException {
+        Member fromMember = memberRepositoryV2.findById(con, fromId);
+        Member toMember = memberRepositoryV2.findById(con, toId);
+
+        memberRepositoryV2.update(con, fromId, fromMember.getMoney() - money);
         validation(toMember);
-        //종료
-        memberRepositoryV1.update(toId, toMember.getMoney() + money);
+        memberRepositoryV2.update(con, toId, toMember.getMoney() + money);
+    }
+
+    private void release(Connection con) {
+        if (con != null) {
+            try {
+                con.setAutoCommit(true);    //커넥션 풀 고려
+                con.close();
+            } catch (Exception e) {
+                log.info("error message", e);
+            }
+        }
     }
 
     private void validation(Member toMember) {
@@ -27,6 +61,4 @@ public class MemberServiceV1 {
             throw new IllegalStateException("이체중 예외 발생");
         }
     }
-
-
 }

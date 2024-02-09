@@ -1,7 +1,12 @@
-package hello.jdbc.service;
+package hello.jdbc;
 
 import hello.jdbc.domain.Member;
 import hello.jdbc.repository.MemberRepositoryV1;
+import hello.jdbc.repository.MemberRepositoryV2;
+import hello.jdbc.service.MemberServiceV1;
+import hello.jdbc.service.MemberServiceV2;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -12,25 +17,25 @@ import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import java.sql.SQLException;
 
 import static hello.jdbc.connection.ConnectionConst.*;
-import static javax.swing.text.html.HTML.Tag.U;
 
 /*
-* 기본 동작, 트랜잭션이 없어서 문제 발생
+* 트랜잭션, 파라미터 전달
 * */
-public class MemberServiceV1Test {
+@Slf4j
+public class MemberServiceV2Test {
 
     public static final String MEMBER_A = "memberA";
     public static final String MEMBER_B = "memberB";
     public static final String MEMBER_EX = "ex";
 
-    private MemberRepositoryV1 memberRepository;
-    private MemberServiceV1 memberService;
+    private MemberRepositoryV2 memberRepository;
+    private MemberServiceV2 memberService;
 
     @BeforeEach
     void before() {
         DriverManagerDataSource dataSource = new DriverManagerDataSource(URL, USERNAME, PASSWORD);
-        memberRepository = new MemberRepositoryV1(dataSource);
-        memberService = new MemberServiceV1(memberRepository);
+        memberRepository = new MemberRepositoryV2(dataSource);
+        memberService = new MemberServiceV2(dataSource,memberRepository);
     }
 
     @AfterEach
@@ -50,7 +55,9 @@ public class MemberServiceV1Test {
         memberRepository.save(memberB);
 
         //when
+        log.info("START TX");
         memberService.accountTransaction(memberA.getMemberId(), memberB.getMemberId(), 2000);
+        log.info("END TX");
 
 
         //then
