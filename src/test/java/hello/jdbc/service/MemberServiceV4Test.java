@@ -5,7 +5,6 @@ import hello.jdbc.repository.MemberRepositoryV3;
 import lombok.extern.slf4j.Slf4j;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.aop.support.AopUtils;
@@ -21,14 +20,15 @@ import javax.sql.DataSource;
 import java.sql.SQLException;
 
 import static hello.jdbc.connection.ConnectionConst.*;
-import static org.assertj.core.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /*
-* 트랜잭션 - 트랜잭션 템플릿
+* 트랜잭션 - DataSource, TransactionManager
 * */
 @Slf4j
 @SpringBootTest
-public class MemberServiceV3_3Test {
+public class MemberServiceV4Test {
 
     public static final String MEMBER_A = "memberA";
     public static final String MEMBER_B = "memberB";
@@ -44,21 +44,15 @@ public class MemberServiceV3_3Test {
     @TestConfiguration
     static class TestConfig {
 
-        // 트랜잭션에 접근할 때 필요(데이터 소스)
-        @Bean
-        DataSource dataSource() {
-            return new DriverManagerDataSource(URL, USERNAME, PASSWORD);
-        }
+        public final DataSource dataSource;
 
-        // 트랜잭션 매니저 주입
-        @Bean
-        PlatformTransactionManager transactionManager() {
-            return new DataSourceTransactionManager(dataSource());
+        public TestConfig(DataSource dataSource) {
+            this.dataSource = dataSource;
         }
 
         @Bean
             MemberRepositoryV3 memberRepositoryV3() {
-                return new MemberRepositoryV3(dataSource());
+                return new MemberRepositoryV3(dataSource);
         }
 
         @Bean
