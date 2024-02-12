@@ -1,7 +1,10 @@
 package hello.jdbc.service;
 
 import hello.jdbc.domain.Member;
+import hello.jdbc.repository.MemberRepository;
 import hello.jdbc.repository.MemberRepositoryV3;
+import hello.jdbc.repository.MemberRepositoryV4_1;
+import hello.jdbc.repository.MemberRepositoryV4_2;
 import lombok.extern.slf4j.Slf4j;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.AfterEach;
@@ -24,8 +27,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /*
-* 트랜잭션 - DataSource, TransactionManager
-* */
+ * 예외 누수 문제 해결
+ * SQLException 제거
+ *
+ * MemberRepository 인터페이스 의존
+ * */
+
 @Slf4j
 @SpringBootTest
 public class MemberServiceV4Test {
@@ -35,9 +42,9 @@ public class MemberServiceV4Test {
     public static final String MEMBER_EX = "ex";
 
     @Autowired
-    private MemberRepositoryV3 memberRepository;
+    private MemberRepository memberRepository;
     @Autowired
-    private MemberServiceV3_3 memberService;
+    private MemberServiceV4 memberService;
 
 
     // AOP 적용
@@ -51,20 +58,20 @@ public class MemberServiceV4Test {
         }
 
         @Bean
-            MemberRepositoryV3 memberRepositoryV3() {
-                return new MemberRepositoryV3(dataSource);
+            MemberRepository memberRepository() {
+                return new MemberRepositoryV4_2(dataSource);
         }
 
         @Bean
-        MemberServiceV3_3 memberServiceV3_3() {
-            return new MemberServiceV3_3(memberRepositoryV3());
+        MemberServiceV4 memberServiceV4() {
+            return new MemberServiceV4(memberRepository());
         }
 
     }
 
 
     @AfterEach
-    void after() throws SQLException {
+    void after() {
         memberRepository.delete(MEMBER_A);
         memberRepository.delete(MEMBER_B);
         memberRepository.delete(MEMBER_EX);
@@ -103,7 +110,7 @@ public class MemberServiceV4Test {
 
     @Test
     @DisplayName("이체중 예외 발생")
-    public void accountTransferEx() throws SQLException {
+    public void accountTransferEx() {
         //given
         Member memberA = new Member(MEMBER_A, 10000);
         Member memberEX = new Member(MEMBER_EX, 10000);

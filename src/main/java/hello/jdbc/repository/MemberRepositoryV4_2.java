@@ -3,27 +3,30 @@ package hello.jdbc.repository;
 import hello.jdbc.domain.Member;
 import hello.jdbc.repository.ex.MyDbException;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.datasource.DataSourceUtils;
 import org.springframework.jdbc.support.JdbcUtils;
+import org.springframework.jdbc.support.SQLErrorCodeSQLExceptionTranslator;
+import org.springframework.jdbc.support.SQLExceptionTranslator;
 
 import javax.sql.DataSource;
 import java.sql.*;
 import java.util.NoSuchElementException;
 
 /*
-* 예외 누수 문제 해결
-* 체크 예외를 런타임 예외로 변경
-* MemberRepository 인터페이스 사용
-* throws SQLException 제거
+* SQLExceptionTranslator 추가
+*
 * */
 
 @Slf4j
-public class MemberRepositoryV4_1 implements MemberRepository{
+public class MemberRepositoryV4_2 implements MemberRepository{
 
     private final DataSource dataSource;
+    private final SQLExceptionTranslator exTranslator;
 
-    public MemberRepositoryV4_1(DataSource dataSource) {
+    public MemberRepositoryV4_2(DataSource dataSource) {
         this.dataSource = dataSource;
+        this.exTranslator = new SQLErrorCodeSQLExceptionTranslator(dataSource);
     }
 
     //JDBC 개발 - 등록
@@ -43,12 +46,9 @@ public class MemberRepositoryV4_1 implements MemberRepository{
             pstmt.executeUpdate();  //데이터를 변경할 때 사용
             return member;
         } catch (SQLException e) {
-            throw new MyDbException(e);
+            throw exTranslator.translate("save", sql, e);
         } finally {
-            //리소스 정리는 항상 수행되어야 함
             close(con, pstmt, null);
-//            pstmt.close();  //Exception이 발생할 경우 con.close호출 되지 않음
-//            con.close();
         }
     }
 
@@ -76,7 +76,7 @@ public class MemberRepositoryV4_1 implements MemberRepository{
                 throw new NoSuchElementException("member not found memberId= " + memberId);
             }
         } catch (SQLException e) {
-            throw new MyDbException(e);
+            throw exTranslator.translate("findById", sql, e);
         } finally {
             close(con, pstmt, rs);
         }
@@ -101,7 +101,7 @@ public class MemberRepositoryV4_1 implements MemberRepository{
             log.info("resultSize={}", resultSize);
 
         } catch (SQLException e) {
-            throw new MyDbException(e);
+            throw exTranslator.translate("update", sql, e);
         } finally {
             JdbcUtils.closeStatement(pstmt);
         }
@@ -121,7 +121,7 @@ public class MemberRepositoryV4_1 implements MemberRepository{
             pstmt.setString(1, memberId);
             pstmt.executeUpdate();
         } catch (SQLException e) {
-            throw new MyDbException(e);
+            throw exTranslator.translate("delete", sql, e);
         } finally {
             close(con, pstmt, null);
         }

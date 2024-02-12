@@ -2,9 +2,8 @@ package hello.jdbc.service;
 
 import hello.jdbc.domain.Member;
 import hello.jdbc.repository.MemberRepository;
-import hello.jdbc.repository.MemberRepositoryV3;
-import hello.jdbc.repository.MemberRepositoryV4_1;
 import hello.jdbc.repository.MemberRepositoryV4_2;
+import hello.jdbc.repository.MemberRepositoryV5;
 import lombok.extern.slf4j.Slf4j;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.AfterEach;
@@ -15,27 +14,20 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
-import org.springframework.jdbc.datasource.DataSourceTransactionManager;
-import org.springframework.jdbc.datasource.DriverManagerDataSource;
-import org.springframework.transaction.PlatformTransactionManager;
 
 import javax.sql.DataSource;
 import java.sql.SQLException;
 
-import static hello.jdbc.connection.ConnectionConst.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /*
- * 예외 누수 문제 해결
- * SQLException 제거
- *
- * MemberRepository 인터페이스 의존
+ * JdbcTemplate 테스트
  * */
 
 @Slf4j
 @SpringBootTest
-public class MemberServiceV4Test {
+public class MemberServiceV5Test {
 
     public static final String MEMBER_A = "memberA";
     public static final String MEMBER_B = "memberB";
@@ -59,7 +51,7 @@ public class MemberServiceV4Test {
 
         @Bean
             MemberRepository memberRepository() {
-                return new MemberRepositoryV4_2(dataSource);
+                return new MemberRepositoryV5(dataSource);
         }
 
         @Bean

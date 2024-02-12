@@ -78,7 +78,6 @@ public class MemberRepositoryV3 {
         } finally {
             close(con, pstmt, rs);
         }
-
     }
 
 
