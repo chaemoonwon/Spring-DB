@@ -14,11 +14,10 @@ public interface ItemMapper {
 
     void save(Item item);
 
-    void update(@Param("id") Long id, @Param("updateParam")ItemUpdateDto updateDto);
+    void update(@Param("id") Long id, @Param("updateParam")ItemUpdateDto updateParam);
 
     Optional<Item> findById(Long id);
 
     List findAll(ItemSearchCond itemSearch);
-
 
 }
